@@ -4,14 +4,15 @@ import java.io.{ByteArrayOutputStream, ObjectOutputStream}
 import java.util
 import org.apache.kafka.common.serialization.Serializer
 
-class KafkaSerializer extends  Serializer[KafkaClientMessage] {
+class KafkaClientSerializer extends  Serializer[KafkaClientMessage] {
 
   override def configure(configs: util.Map[String,_],isKey: Boolean):Unit = {
 
   }
 
 
-  override def serialize(topic:String, data:KafkaClientMessage):Array[Byte] = {
+  override def serialize (topic:String, data: KafkaClientMessage):Array[Byte] = {
+
     try {
       val byteOut = new ByteArrayOutputStream()
       val objOut = new ObjectOutputStream(byteOut)

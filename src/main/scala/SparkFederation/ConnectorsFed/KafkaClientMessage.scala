@@ -1,9 +1,8 @@
 package SparkFederation.ConnectorsFed
 
-class KafkaClientMessage (
-                         val idClient: String,
-                         val topicId: String,
-                         val query: String
-                         ) {
+@SerialVersionUID(100L)
+class KafkaClientMessage (val topicId: String,val query: String) extends Serializable {
+
+  override def toString: String = "Message client: topicId -> " + this.topicId + " query -> " + this.query
 
 }

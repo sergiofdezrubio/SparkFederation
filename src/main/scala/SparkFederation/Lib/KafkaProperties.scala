@@ -9,6 +9,7 @@ object KafkaProperties {
 
   private val brokers =  "localhost:9092"
   private val QueryTopic : String = "SummitQuery"
+  private val ServerTopic : String = "ServerTopic"
 
   def getTopic(typeProCons: String ): String = {
 
@@ -17,13 +18,27 @@ object KafkaProperties {
     if (typeProCons == "query") {
       result=this.QueryTopic
     }
+    if (typeProCons == "server") {
+      result=this.ServerTopic
+    }
+
     result
   }
 
 }
 
-class KafkaProperties (val groupId : String) {
+class KafkaProperties (val groupId : String,val serializer: String) {
 
+/*
+  def this (groupId: String) {
+
+    this (groupId,
+          "org.apache.kafka.common.serialization.StringSerializer",
+          "org.apache.kafka.common.serialization.StringDeserializer"
+    )
+
+  }
+*/
   // Topic ClientProducer: "SummitQuery"
   //  kafka-topics.sh --create --zookeeper localhost:2181 --replication-factor 1 --partitions 1 --topic SummitQuery
   //  kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic SummitQuery --from-beginning
@@ -34,8 +49,8 @@ class KafkaProperties (val groupId : String) {
   val KafkaPropsProd = new  Properties()
   KafkaPropsProd.put("bootstrap.servers", KafkaProperties.brokers)
   KafkaPropsProd.put("client.id", this.groupId)
-  KafkaPropsProd.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer")
-  KafkaPropsProd.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
+  KafkaPropsProd.put("key.serializer", this.serializer)
+  KafkaPropsProd.put("value.serializer", this.serializer)
 
   val KafkaPropsCons = new Properties()
   KafkaPropsCons.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaProperties.brokers)
@@ -43,8 +58,8 @@ class KafkaProperties (val groupId : String) {
   KafkaPropsCons.put(ConsumerConfig.GROUP_ID_CONFIG, groupId)
   KafkaPropsCons.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000")
   KafkaPropsCons.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, "30000")
-  KafkaPropsCons.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer")
-  KafkaPropsCons.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer")
+  KafkaPropsCons.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, this.serializer)
+  KafkaPropsCons.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, this.serializer)
 
 
 }

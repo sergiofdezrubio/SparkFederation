@@ -5,14 +5,28 @@ import java.util.Collections
 import SparkFederation.Lib.KafkaProperties
 import org.apache.kafka.clients.consumer.KafkaConsumer
 
-class KafkaConsumerFed (val groupId : String, val typeCons: String){
+class KafkaConsumerFed[U] (val groupId : String,
+                        val typeCons: String,
+                        val deserializer: String
+                       ){
+
+  def this (groupId: String, typeProd: String) {
+
+    this (groupId
+      ,typeProd
+      ,"org.apache.kafka.common.serialization.StringDeserializer"
+    )
+
+  }
+
+
     // reference: https://github.com/smallnest/kafka-example-in-scala/blob/master/src/main/scala/com/colobu/kafka/ScalaConsumerExample.scala
     val consumer = configureConsumer(this.groupId , this.typeCons)
 
-    def configureConsumer( groupId: String, typeCons: String) : KafkaConsumer[String,String] = {
+    def configureConsumer( groupId: String, typeCons: String) : KafkaConsumer[String,U] = {
 
-      val properties = new KafkaProperties(groupId)
-      val kafConsumer = new KafkaConsumer[String,String](properties.KafkaPropsCons)
+      val properties = new KafkaProperties(groupId, this.deserializer)
+      val kafConsumer = new KafkaConsumer[String,U](properties.KafkaPropsCons)
       kafConsumer.subscribe(Collections.singletonList(KafkaProperties.getTopic(typeCons)))
       kafConsumer
     }
