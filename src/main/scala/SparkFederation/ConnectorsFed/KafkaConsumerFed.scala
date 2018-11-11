@@ -25,9 +25,12 @@ class KafkaConsumerFed[U] (val groupId : String,
 
     def configureConsumer( groupId: String, typeCons: String) : KafkaConsumer[String,U] = {
 
-      val properties = new KafkaProperties(groupId, this.deserializer)
-      val kafConsumer = new KafkaConsumer[String,U](properties.KafkaPropsCons)
-      kafConsumer.subscribe(Collections.singletonList(KafkaProperties.getTopic(typeCons)))
+      //val properties = new KafkaProperties(groupId, this.deserializer)
+      //val kafConsumer = new KafkaConsumer[String,U](properties.KafkaPropsCons)
+      val properties = KafkaProperties.createKafkaPropsCons(groupId, this.deserializer)
+      val kafConsumer = new KafkaConsumer[String,U](properties)
+
+      kafConsumer.subscribe(Collections.singletonList(KafkaProperties.getStandardTopic(typeCons)))
       kafConsumer
     }
 

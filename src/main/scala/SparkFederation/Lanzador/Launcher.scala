@@ -2,10 +2,11 @@ package SparkFederation.Lanzador
 
 
 import java.time.Duration
-import java.util.Collections
+import java.util.{Collections, Properties}
 
 import SparkFederation.ConnectorsFed.{KafkaClientMessage, KafkaConsumerFed, KafkaProducerFed}
 import SparkFederation.Lib.KafkaProperties
+import org.apache.kafka.clients.admin.{AdminClient, AdminClientConfig, ListTopicsOptions}
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.ConsumerRecords
 
@@ -13,6 +14,15 @@ import scala.collection.JavaConversions._
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, SubqueryAlias}
+
+
+
+import java.util.Properties
+
+import org.apache.kafka.clients.admin.{AdminClient, ListTopicsOptions, NewTopic}
+
+import scala.collection.JavaConverters._
+import org.apache.kafka.clients.admin.AdminClientConfig
 
 object Launcher {
 
@@ -45,7 +55,7 @@ object Launcher {
   }
 
   def main(args : Array[String]): Unit = {
-
+/*
     val query = "select * from table_1 as a left join table_2 as b on a.id=b.id where a.id = 2"
     /*
     Launcher.getTables(query).foreach(println)
@@ -83,7 +93,49 @@ object Launcher {
         println("Received message: (" + record.key() + ", " + record.value() + ") at offset " + record.offset())
         flag = 1
       }
+
     }
+*/
+
+    val KafkaServer = "localhost:9092"
+    val topic = "default"
+    val zookeeperConnect = KafkaServer
+    val sessionTimeoutMs = 10 * 1000
+    val connectionTimeoutMs = 8 * 1000
+
+    val partitions = 1
+    val replication:Short = 1
+    val topicConfig = new Properties() // add per-topic configurations settings here
+
+    val config = new Properties
+    config.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaServer)
+    val admin = AdminClient.create(config)
+
+    admin.deleteTopics(List(topic).asJavaCollection)
+
+
+    val existing1 = admin.listTopics(new ListTopicsOptions().timeoutMs(500).listInternal(true))
+    val nms1 = existing1.names()
+    //nms1.get().asScala.foreach(nm => println(nm)) // nms.get() fails
+
+
+    val newTopic = new NewTopic(topic, partitions, replication)
+    newTopic.configs(Map[String,String]().asJava)
+    val ret = admin.createTopics(List(newTopic).asJavaCollection)
+    //ret.all().get() // Also fails
+    val a = List[String]()
+
+
+    //println ("-- " + ret.values().keySet().iterator().next())
+    println ("--1 " + ret.values().asScala.keys.head)
+
+
+    val existing = admin.listTopics(new ListTopicsOptions().timeoutMs(500).listInternal(true))
+    val nms = existing.names()
+   // nms.get().asScala.foreach(nm => println(nm)) // nms.get() fails
+
+
+    admin.close()
 
   }
 

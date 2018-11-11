@@ -2,51 +2,76 @@ package SparkFederation.Lib
 
 import java.util.Properties
 
-import kafka.admin.AdminUtils
-import kafka.utils.ZkUtils
-import org.I0Itec.zkclient.ZkClient
-import kafka.zk.AdminZkClient
-import kafka.utils.ZKStringSerializer
-import org.I0Itec.zkclient.serialize.ZkSerializer
-import org.apache.kafka.clients.admin.CreateTopicsResult
-import org.apache.zookeeper.ZKUtil
-
-
-import org.apache.kafka.clients.admin.AdminClientConfig
 import org.apache.kafka.clients.admin.{AdminClient, ListTopicsOptions, NewTopic}
-import scala.collection.JavaConverters._
 
-// AdminZkClient
+import scala.collection.JavaConverters._
+import org.apache.kafka.clients.admin.AdminClientConfig
 
 object KafkaCreateTopic {
 
-  val zookeeperConnect = "localhost:2181"
-  val sessionTimeoutMs: Int = 10 * 1000
-  val connectionTimeoutMs: Int = 8 * 1000
+  val KafkaServer = "localhost:9092"
+  val admin = createAdmin()
 
-  val zkClient = new ZkClient(
-    zookeeperConnect,
-    sessionTimeoutMs,
-    connectionTimeoutMs,ZKStringSerializer$/MODULE$
-  )
+  // https://stackoverflow.com/questions/47871708/kafka-1-0-0-admin-client-cannot-create-topic-with-eofexception
 
-  val prueba = ZkUtils.createZkClientAndConnection()
-/*
-
-
-
-  val hola = zkClient.setZkSerializer(ZKStringSerializer.MODULE$ )
-
-  def CreateKafkaTopic(topic: String, zookeeperHosts: String, partitionSize: Int, replicationCount: Int, connectionTimeoutMs: Int = 10000, sessionTimeoutMs: Int = 10000): Boolean = {
-    if (List(zookeeperHosts).contains(topic) ) {
-      return false
-    }
-    val zkUtils = ZkUtils.apply(zookeeperHosts, sessionTimeoutMs, connectionTimeoutMs, false)
-    AdminUtils.createTopic( zkUtils, topic, partitionSize, replicationCount, new Properties())
-    zkUtils.close()
-    true
+  def createAdmin(): AdminClient = {
+    val config = new Properties
+    config.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaServer)
+    val admin = AdminClient.create(config)
+    admin
   }
-*/
+
+  def createTopic(topic :String, partition: Short = 1, replication:Short = 1 ) : Int = {
+
+    var result = 0
+
+    val topicsActives = listTopics()
+
+    topicsActives.foreach(
+      t => {
+          if (t.equals(topic)) {
+            result=1
+          }
+
+      }
+    )
+    if (result == 0) {
+      val newTopic = new NewTopic(topic, partition, replication)
+      newTopic.configs(Map[String, String]().asJava)
+      val ret = admin.createTopics(List(newTopic).asJavaCollection)
+      ret.all().get() // Also fails
+    }
+
+    result
+  }
+
+  def listTopics(): Iterable[String] = {
+    val existing = admin.listTopics(new ListTopicsOptions().timeoutMs(500).listInternal(true))
+    val nms = existing.names()
+    nms.get().asScala
+    // nms.get().asScala.foreach(nm => println(nm)) <- To print topics name
+  }
+
+  def deleteTopic (topic: String) : Int = {
+    var result = 1
+    val topicsActives = listTopics()
+
+    topicsActives.foreach(
+      t => {
+        if (t.equals(topic)) {
+          admin.deleteTopics(List(topic).asJavaCollection)
+          result=0
+        }
+
+      }
+    )
+    result
+  }
+
+  def shutDown (): Unit ={
+
+    admin.close()
+  }
 }
 /*
 mirar bien
