@@ -64,6 +64,12 @@
         </dependency>
 
         <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-core_2.11</artifactId>
+            <version>2.3.2</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka_2.11</artifactId>
             <version>2.0.0</version>
@@ -74,6 +80,13 @@
             <artifactId>hadoop-hdfs</artifactId>
             <version>2.9.0</version>
         </dependency>
+
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-common</artifactId>
+            <version>2.9.0</version>
+        </dependency>
+
 
         <dependency>
             <groupId>org.elasticsearch</groupId>

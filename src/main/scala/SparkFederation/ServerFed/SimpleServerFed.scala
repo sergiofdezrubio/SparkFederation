@@ -13,7 +13,6 @@ class SimpleServerFed (val idClient : String, val groupId : String ) {
   )
   final val queryListener  = new KafkaConsumerFed[KafkaClientMessage](
       this.groupId,
-    //KafkaProperties.getStandardTopic("query")
     "query"
       ,"SparkFederation.ConnectorsFed.KafkaClientDeserializer"
   )
@@ -24,13 +23,7 @@ class SimpleServerFed (val idClient : String, val groupId : String ) {
 
     val consumer = this.queryListener.consumer
     var resoult :  KafkaClientMessage = null
-
     var flag = 0
-
-    println (" --> " + this.queryListener.properties)
-
-
-
 
     while (flag == 0) {
 

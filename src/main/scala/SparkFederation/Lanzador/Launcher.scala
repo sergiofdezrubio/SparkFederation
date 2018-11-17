@@ -5,14 +5,14 @@ import java.time.Duration
 import java.util.{Collections, Properties}
 
 import SparkFederation.ConnectorsFed.{KafkaClientMessage, KafkaConsumerFed, KafkaProducerFed}
-import SparkFederation.Lib.KafkaProperties
+import SparkFederation.Lib.{HDFSProperties, KafkaProperties}
 import org.apache.kafka.clients.admin.{AdminClient, AdminClientConfig, ListTopicsOptions}
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.ConsumerRecords
 
 import scala.collection.JavaConversions._
 import org.apache.spark.{SparkConf, SparkContext}
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, SubqueryAlias}
 import java.util.Properties
 
@@ -22,9 +22,32 @@ import org.apache.kafka.clients.admin.{AdminClient, ListTopicsOptions, NewTopic}
 
 import scala.collection.JavaConverters._
 import org.apache.kafka.clients.admin.AdminClientConfig
+import org.apache.spark
 
 
 // http://localhost:50070/
+//kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic SummitQuery -from-beginning
+//
+//
+/*
+Datasets:
+  First choice:
+    - https://catalog.data.gov/dataset/consumer-complaint-database
+    - https://catalog.data.gov/dataset/demographic-statistics-by-zip-code-acfc9
+   Second Choice:
+    - http://insideairbnb.com/get-the-data.html
+
+HDFS Paths:
+    Home Proyect:
+    - /user/utad/workspace/SparkFederation
+
+    Datasets
+    - /user/utad/workspace/SparkFederation
+
+
+
+
+*/
 
 object Launcher {
 
@@ -139,7 +162,7 @@ object Launcher {
 
     admin.close()
     */
-
+    /*
     //KafkaProperties.deleteTopic("ClientTopic_1")
     //KafkaProperties.deleteTopic("SummitQuery")
     //KafkaProperties.createTopic("SummitQuery")
@@ -160,6 +183,45 @@ object Launcher {
       }
 
     }
+    */
+
+    println ("--- " + HDFSProperties.HADOOP_RAW + " -- " + HDFSProperties.HADOOP_DATA)
+
+    val spark = org.apache.spark.sql.SparkSession.builder
+      .master("local[*]")
+      .appName("Spark CSV Reader")
+      .getOrCreate;
+/*
+    val dfCsv = spark.read.format("csv")
+              .option("header", "true")
+              .option("delimiter",",")
+              .load("hdfs://127.0.0.1:9000/" + HDFSProperties.HADOOP_DATA + "/Demographic_Statistics_By_Zip_Code.csv")
+
+    println(dfCsv.printSchema())
+*/
+
+    HDFSProperties.csv2Parquet(spark
+      , "Demographic_Statistics_By_Zip_Code.csv"
+      , "Demographic_Statistics_By_Zip_Code.parquet")
+    HDFSProperties.readParquet(spark, "Demographic_Statistics_By_Zip_Code.parquet")
+
+
+/*
+    val spark = org.apache.spark.sql.SparkSession.builder
+      .master("local")
+      .appName("Spark CSV Reader")
+      .getOrCreate;
+    val rdd = spark.read.format("csv")
+      .option("header", "true")
+      .option("delimiter",",")
+      .load(HDFSProperties.HADOOP_URY  + HDFSProperties.HADOOP_RAW + "Demographic_Statistics_By_Zip_Code.csv" )
+    println(rdd.printSchema())
+    // Convert rdd to data frame using toDF; the following import is required to use toDF function.
+    val df: DataFrame = rdd.toDF()
+    println ("--- " + HDFSProperties.HADOOP_RAW + " -- " + HDFSProperties.HADOOP_DATA)
+    // Write file to parquet
+    df.write.parquet(HDFSProperties.HADOOP_DATA + "Demographic_Statistics_By_Zip_Code");
+    */
   }
 
 }
