@@ -14,15 +14,17 @@ import scala.collection.JavaConversions._
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, SubqueryAlias}
-
-
-
 import java.util.Properties
 
+import SparkFederation.ClientFed.SimpleClientFed
+import SparkFederation.ServerFed.SimpleServerFed
 import org.apache.kafka.clients.admin.{AdminClient, ListTopicsOptions, NewTopic}
 
 import scala.collection.JavaConverters._
 import org.apache.kafka.clients.admin.AdminClientConfig
+
+
+// http://localhost:50070/
 
 object Launcher {
 
@@ -55,7 +57,7 @@ object Launcher {
   }
 
   def main(args : Array[String]): Unit = {
-/*
+    /*
     val query = "select * from table_1 as a left join table_2 as b on a.id=b.id where a.id = 2"
     /*
     Launcher.getTables(query).foreach(println)
@@ -96,7 +98,7 @@ object Launcher {
 
     }
 */
-
+    /*
     val KafkaServer = "localhost:9092"
     val topic = "default"
     val zookeeperConnect = KafkaServer
@@ -136,7 +138,28 @@ object Launcher {
 
 
     admin.close()
+    */
 
+    //KafkaProperties.deleteTopic("ClientTopic_1")
+    //KafkaProperties.deleteTopic("SummitQuery")
+    //KafkaProperties.createTopic("SummitQuery")
+    val query = "select * from table_1 as a left join table_2 as b on a.id=b.id where a.id = 3"
+    val client = new SimpleClientFed("client1","group1")
+    val server = new SimpleServerFed("server","serverCluster")
+    try {
+
+      client.summitQuery(query)
+
+      server.listenQuery()
+
+      client.shutdown()
+    } catch {
+      case e : Exception => {
+        client.shutdown()
+        println (e.toString)
+      }
+
+    }
   }
 
 }

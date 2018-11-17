@@ -109,6 +109,7 @@ object KafkaProperties {
     KafkaPropsCons.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, "30000")
     KafkaPropsCons.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, deserializer)
     KafkaPropsCons.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, deserializer)
+    KafkaPropsCons.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,"latest")
     KafkaPropsCons
   }
 }
