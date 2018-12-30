@@ -1,9 +1,11 @@
 package SparkFederation.Lanzador
 
 
+import java.io.{ByteArrayInputStream, ObjectInputStream}
 import java.time.Duration
 import java.util.{Collections, Properties}
 
+import org.apache.zookeeper.ZooKeeper
 import SparkFederation.ConnectorsFed.{KafkaClientMessage, KafkaConsumerFed, KafkaProducerFed}
 import SparkFederation.Lib.{HDFSProperties, KafkaProperties, SparkProperties}
 import org.apache.kafka.clients.admin.{AdminClient, AdminClientConfig, ListTopicsOptions}
@@ -18,6 +20,10 @@ import java.util.Properties
 
 import SparkFederation.ClientFed.SimpleClientFed
 import SparkFederation.ServerFed.SimpleServerFed
+import SparkFederation.ServerFed.utils.HDFSHandler
+import SparkFederation.ServerFed.zkCoordinatorFed.zkExecutor
+import kafka.zookeeper.ZooKeeperClient
+import org.apache.zookeeper.Watcher
 //import org.apache.spark.sql.types.{BooleanType, DateType, IntegerType, StringType}
 import org.apache.spark.sql.types._
 
@@ -57,8 +63,6 @@ HDFS Paths:
 object Launcher extends App {
   //
   //val sc = SparkProperties.sc
-
-
   /*
   def getTables(query: String): Seq[String] = {
 
@@ -88,6 +92,9 @@ object Launcher extends App {
     logicalPlan.collect{ case r : SubqueryAlias => (r.alias,r.child)  }
   }
 */
+
+
+
   override def main(args : Array[String]): Unit = {
     /*
     val query = "select * from table_1 as a left join table_2 as b on a.id=b.id where a.id = 2"
@@ -328,10 +335,7 @@ object Launcher extends App {
 
     df.show()
     */
-
-
-
-/*
+    /*
     HDFSProperties.csv2Parquet(
       "Consumer_Complaints.csv"
       , "Consumer_Complaints.parquet"
@@ -341,9 +345,10 @@ object Launcher extends App {
 
     implicit val session = SparkProperties.ss
 
-    //HDFSProperties.iniDatasets()
-    //println ("Antes-----")
-    //HDFSProperties.readParquet("Demographic_Statistics_By_Zip_Code.parquet")
+    val hdfsMaster = new HDFSHandler()
+    hdfsMaster.iniDatasets()
+    /*println ("Antes-----")
+    HDFSProperties.readParquet("Demographic_Statistics_By_Zip_Code.parquet")
     println("Despues ---- ")
     val tabla = SparkProperties.getHDFSTable("Demographic_Statistics_By_Zip_Code")
     println("despues 2 ***")
@@ -353,6 +358,20 @@ object Launcher extends App {
     val tabla1 = SparkProperties.getHDFSTable("Demographic_Statistics_By_Zip_Code")
     println("despues 3 ***")
     tabla1.show()
+    */
+
+    //val zkMaster = new zkExecutor()
+
+    //zkMaster.createZnode("/hdfs/prueba", "Esto es una prueba".getBytes)
+
+
+    //val rawData = zkMaster.getData("/hdfs/prueba").get
+    //val netData = (rawData.map(_.toChar)).mkString
+    //println(netData)
+
+    //zkMaster.setData("/hdfs/prueba", "Esto es una prueba 2".getBytes)
+
+    //zkMaster.deleteZnode("/hdfs/prueba")
 
   }
 

@@ -12,9 +12,9 @@ class SimpleServerFed (val idClient : String, val groupId : String ) {
       this.idClient,KafkaProperties.getStandardTopic("server")
   )
   final val queryListener  = new KafkaConsumerFed[KafkaClientMessage](
-      this.groupId,
-    "query"
-      ,"SparkFederation.ConnectorsFed.KafkaClientDeserializer"
+      this.groupId
+    ,"query"
+    ,"SparkFederation.ConnectorsFed.KafkaClientDeserializer"
   )
 
 
@@ -22,7 +22,7 @@ class SimpleServerFed (val idClient : String, val groupId : String ) {
   def listenQuery(): KafkaClientMessage ={
 
     val consumer = this.queryListener.consumer
-    var resoult :  KafkaClientMessage = null
+    var result :  KafkaClientMessage = null
     var flag = 0
 
     while (flag == 0) {
@@ -33,14 +33,14 @@ class SimpleServerFed (val idClient : String, val groupId : String ) {
 
       for (record <- records.iterator()) {
         println("Received message: (" + record.key() + ", " + record.value() + ") at offset " + record.offset())
-        resoult = record.value()
+        result = record.value()
         flag = 1
       }
 
     }
     consumer.commitSync()
 
-    resoult
+    result
     // llamar a la clase que maneja el contexto de spark y lanza la query
 
   }

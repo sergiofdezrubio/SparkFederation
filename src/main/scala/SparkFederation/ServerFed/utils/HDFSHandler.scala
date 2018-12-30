@@ -1,24 +1,18 @@
-package SparkFederation.Lib
-
+package SparkFederation.ServerFed.utils
 
 import SparkFederation.Exceptions.TableNoExistHDFS
+import SparkFederation.Lib.{HDFSProperties, ZooKeeperProperties}
 import SparkFederation.ServerFed.zkCoordinatorFed.zkExecutor
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
+class HDFSHandler {
 
-object HDFSProperties  {
-
-  val HADOOP_HOME="/user/utad/workspace/SparkFederation"
-  val HADOOP_URY="hdfs://127.0.0.1:9000"
-  val HADOOP_DATA="hdfs://127.0.0.1:9000/user/utad/workspace/SparkFederation/data/"
-  val HADOOP_RAW= "hdfs://127.0.0.1:9000/user/utad/workspace/SparkFederation/data/raw/"
-  //val zk = new zkExecutor ()
+  val zk = new zkExecutor ()
 
   // hdfs dfs -mkdir -p /user/utad/workspace/SparkFederation/data/raw/
   // hdfs dfs -put *.csv /user/utad/workspace/SparkFederation/data/raw/
 
-  /*
   def csv2Parquet(
                    inFilename : String
                    ,outFilename: String
@@ -41,12 +35,12 @@ object HDFSProperties  {
       .option("inferSchema", "false")
       .option("escape", scape)
       .option("multiline",multiline)
-      .csv(this.HADOOP_RAW + inFilename )
+      .csv(HDFSProperties.HADOOP_RAW + inFilename )
 
     df.show()
 
     // Write file to parquet
-    val parquetFile = this.HADOOP_DATA + outFilename
+    val parquetFile = HDFSProperties.HADOOP_DATA + outFilename
     df.write.parquet(parquetFile )
 
   }
@@ -54,7 +48,7 @@ object HDFSProperties  {
   def readParquet(filename: String) (implicit spark: SparkSession): Unit = {
 
 
-    val pathfile = this.HADOOP_DATA + filename
+    val pathfile = HDFSProperties.HADOOP_DATA + filename
     // read back parquet to DF
     val newDataDF = spark.read.parquet(pathfile)
 
@@ -79,7 +73,7 @@ object HDFSProperties  {
       case e : org.apache.spark.sql.AnalysisException =>
         println (e.getMessage + " " + e.getCause)
         throw new TableNoExistHDFS("Table: " + hdfsPath + "doesn't exist", e.getCause )
-        //null
+      //null
 
     }
 
@@ -112,15 +106,15 @@ object HDFSProperties  {
       ,StructField("Consumer_disputed",StringType,nullable = true)
       ,StructField("Complaint_ID",StringType,nullable = true)))
 
-    HDFSProperties.csv2Parquet(
+    this.csv2Parquet(
       "Consumer_Complaints.csv"
       , "Consumer_Complaints.parquet"
       ,schemaCC
       ,dateFormat = "MM/dd/yyyy")
 
-    HDFSProperties.readParquet("Consumer_Complaints.parquet")
+    this.readParquet("Consumer_Complaints.parquet")
 
-    HDFSProperties.registerDataset("Consumer_Complaints", HDFSProperties.HADOOP_DATA +  "Consumer_Complaints.parquet")
+    this.registerDataset("Consumer_Complaints", HDFSProperties.HADOOP_DATA +  "Consumer_Complaints.parquet")
 
     val schemaDSbZ: StructType = StructType(Array(
       StructField("JURISDICTION_NAME",IntegerType,nullable = true)
@@ -171,14 +165,14 @@ object HDFSProperties  {
       ,StructField("PERCENT_PUBLIC_ASSISTANCE_TOTAL",FloatType,nullable = true)
     ))
 
-    HDFSProperties.csv2Parquet(
-         "Demographic_Statistics_By_Zip_Code.csv"
+    this.csv2Parquet(
+      "Demographic_Statistics_By_Zip_Code.csv"
       , "Demographic_Statistics_By_Zip_Code.parquet"
       ,schemaDSbZ)
 
-    HDFSProperties.readParquet("Demographic_Statistics_By_Zip_Code.parquet")
+    this.readParquet("Demographic_Statistics_By_Zip_Code.parquet")
 
-    HDFSProperties.registerDataset("Demographic_Statistics_By_Zip_Code", HDFSProperties.HADOOP_DATA  + "Demographic_Statistics_By_Zip_Code.parquet")
+    this.registerDataset("Demographic_Statistics_By_Zip_Code", HDFSProperties.HADOOP_DATA  + "Demographic_Statistics_By_Zip_Code.parquet")
   }
-*/
+
 }
