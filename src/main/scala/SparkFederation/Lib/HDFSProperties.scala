@@ -1,7 +1,7 @@
 package SparkFederation.Lib
 
 
-import SparkFederation.Exceptions.TableNoExistHDFS
+import SparkFederation.Exceptions.TableNoExistFed
 import SparkFederation.ServerFed.zkCoordinatorFed.zkExecutor
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{DataFrame, SparkSession}

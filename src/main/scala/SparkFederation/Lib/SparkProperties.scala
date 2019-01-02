@@ -13,56 +13,12 @@ import org.apache.spark.sql.catalyst.analysis.UnresolvedRelation
 
 object SparkProperties {
 
-   val ss = SparkSession.builder
+   final val ss = SparkSession.builder
     .master("local")
     .appName("SparkFederation")
     .config("spark.driver.host","localhost")
+    //.config("spark.debug.maxToStringFields", "100")
     .master("local[*]")
     .getOrCreate()
 
-
-  var tables: Map [String,DataFrame] = Map()
-
-   def getHDFSTable(tableName: String)(implicit  ss : SparkSession): DataFrame = {
-
-     if ( ! this.tables.exists(_._1 == tableName)){
-       println ("********* " + this.tables)
-       this.tables  = this.tables + ( tableName -> HDFSProperties.getDataset(tableName + ".parquet"))
-     }
-
-
-     val table : DataFrame = this.tables.get(tableName ).get
-
-     table
-
-   }
-/*
-  def parseSQLQuery(query: String)(implicit ss : SparkSession): LogicalPlan = {
-
-    val logicalPlan = ss.sessionState.sqlParser.parsePlan(query)
-    logicalPlan
-  }
-
-  def getQueryPlan(query: String) (implicit ss : SparkSession): Seq[(String,LogicalPlan)] = {
-    val logicalPlan = ss.sessionState.sqlParser.parsePlan(query)
-    logicalPlan.collect{ case r : SubqueryAlias => (r.alias,r.child)  }
-  }
-
-  def getQueryTables(query: String)(implicit ss : SparkSession) : Seq[String] = {
-
-    val logicalPlan = ss.sessionState.sqlParser.parsePlan(query)
-    logicalPlan.collect { case r: UnresolvedRelation => r.tableName  }
-
-  }
-
-  def compileQuery() (implicit sc : SparkContext) = {
-
-
-  }
-*/
-/*
-  def getHDFSTable (tablename: String) : DataFrame = {
-
-
-  }*/
 }

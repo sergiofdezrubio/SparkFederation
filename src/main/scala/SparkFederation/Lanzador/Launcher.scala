@@ -15,14 +15,17 @@ import org.apache.kafka.clients.consumer.ConsumerRecords
 import scala.collection.JavaConversions._
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.sql.{DataFrame, SparkSession}
-import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, SubqueryAlias}
+import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, Project, SubqueryAlias}
 import java.util.Properties
 
 import SparkFederation.ClientFed.SimpleClientFed
 import SparkFederation.ServerFed.SimpleServerFed
-import SparkFederation.ServerFed.utils.HDFSHandler
+import SparkFederation.ServerFed.utils.{HDFSHandler, ServerHandler, SparkSQLHandler}
 import SparkFederation.ServerFed.zkCoordinatorFed.zkExecutor
 import kafka.zookeeper.ZooKeeperClient
+import org.apache.spark.sql.catalyst.analysis.UnresolvedRelation
+import org.apache.spark.sql.execution.command.DropTableCommand
+import org.apache.spark.sql.execution.datasources.CreateTable
 import org.apache.zookeeper.Watcher
 //import org.apache.spark.sql.types.{BooleanType, DateType, IntegerType, StringType}
 import org.apache.spark.sql.types._
@@ -61,8 +64,7 @@ HDFS Paths:
 */
 
 object Launcher extends App {
-  //
-  //val sc = SparkProperties.sc
+
   /*
   def getTables(query: String): Seq[String] = {
 
@@ -92,8 +94,6 @@ object Launcher extends App {
     logicalPlan.collect{ case r : SubqueryAlias => (r.alias,r.child)  }
   }
 */
-
-
 
   override def main(args : Array[String]): Unit = {
     /*
@@ -341,12 +341,9 @@ object Launcher extends App {
       , "Consumer_Complaints.parquet"
       ,schemaCC
       ,dateFormat = "MM/dd/yyyy")*/
-
-
-    implicit val session = SparkProperties.ss
-
-    val hdfsMaster = new HDFSHandler()
-    hdfsMaster.iniDatasets()
+    /*
+    //val hdfsMaster = new HDFSHandler()
+    //hdfsMaster.iniDatasets()
     /*println ("Antes-----")
     HDFSProperties.readParquet("Demographic_Statistics_By_Zip_Code.parquet")
     println("Despues ---- ")
@@ -372,6 +369,101 @@ object Launcher extends App {
     //zkMaster.setData("/hdfs/prueba", "Esto es una prueba 2".getBytes)
 
     //zkMaster.deleteZnode("/hdfs/prueba")
+*/
+    /*
+        val SQLHand = new SparkSQLHandler(spHandler)
+        val coreServer = new ServerHandler()
+
+        //val query = "select * from Demographic_Statistics_By_Zip_Code"
+        val query = "select b.JURISDICTION_NAME,a.ZIP_code,a.Complaint_ID from Consumer_Complaints a inner join Demographic_Statistics_By_Zip_Code b on a.ZIP_code = b.JURISDICTION_NAME"
+
+        val tableNames = SQLHand.getQueryTableNames(query)
+
+        println(s"Tablenames from query: ${query} ")
+
+        println ("Register Tables")
+        SQLHand.getQueryTables(tableNames)
+
+        println("Query Execution")
+        session.sql(query).show
+    */
+    /*
+        val df = session.read.parquet("hdfs://127.0.0.1:9000/user/utad/workspace/SparkFederation/data/Consumer_Complaints.parquet")
+
+        df.limit(1).write.option("path", "hdfs://127.0.0.1:9000/Consumer_Complaints").
+          saveAsTable("Consumer_Complaints")
+
+
+
+        session.sql("SHOW CREATE TABLE Consumer_Complaints").show(1, false)
+  */
+
+    implicit val session = SparkProperties.ss
+
+    //val hdfsHandler = new HDFSHandler()
+    val serverExecutor = new ServerHandler()
+
+    //hdfsHandler.iniDatasets()
+    //serverExecutor.initServer
+
+
+    /*
+    println("**************** Se consultan las tablas")
+    session.sql("select * from Demographic_Statistics_By_Zip_Code").show
+    session.sql("select * from Consumer_Complaints").show
+    */
+
+    val sqlExecutor = new SparkSQLHandler(serverExecutor)
+    // CreateDataSourceTableCommand
+    val createDemografic = s"CREATE TABLE db1.Demographic_Statistics_By_Zip_Code (JURISDICTION_NAME INT, COUNT_PARTICIPANTS INT, COUNT_FEMALE INT, PERCENT_FEMALE FLOAT, COUNT_MALE INT, PERCENT_MALE FLOAT, COUNT_GENDER_UNKNOWN INT, PERCENT_GENDER_UNKNOWN FLOAT, COUNT_GENDER_TOTAL INT, PERCENT_GENDER_TOTAL FLOAT, COUNT_PACIFIC_ISLANDER INT, PERCENT_PACIFIC_ISLANDER FLOAT, COUNT_HISPANIC_LATINO INT, PERCENT_HISPANIC_LATINO FLOAT, COUNT_AMERICAN_INDIAN INT, PERCENT_AMERICAN_INDIAN FLOAT, COUNT_ASIAN_NON_HISPANIC INT, PERCENT_ASIAN_NON_HISPANIC FLOAT, COUNT_WHITE_NON_HISPANIC INT, PERCENT_WHITE_NON_HISPANIC FLOAT, COUNT_BLACK_NON_HISPANIC INT, PERCENT_BLACK_NON_HISPANIC FLOAT, COUNT_OTHER_ETHNICITY INT, PERCENT_OTHER_ETHNICITY FLOAT, COUNT_ETHNICITY_UNKNOWN INT, PERCENT_ETHNICITY_UNKNOWN FLOAT, COUNT_ETHNICITY_TOTAL INT, PERCENT_ETHNICITY_TOTAL INT, COUNT_PERMANENT_RESIDENT_ALIEN INT, PERCENT_PERMANENT_RESIDENT_ALIEN FLOAT, COUNT_US_CITIZEN INT, PERCENT_US_CITIZEN FLOAT, COUNT_OTHER_CITIZEN_STATUS INT, PERCENT_OTHER_CITIZEN_STATUS FLOAT, COUNT_CITIZEN_STATUS_UNKNOWN INT, PERCENT_CITIZEN_STATUS_UNKNOWN FLOAT, COUNT_CITIZEN_STATUS_TOTAL INT, PERCENT_CITIZEN_STATUS_TOTAL FLOAT, COUNT_RECEIVES_PUBLIC_ASSISTANCE INT, PERCENT_RECEIVES_PUBLIC_ASSISTANCE FLOAT, COUNT_NRECEIVES_PUBLIC_ASSISTANCE INT, PERCENT_NRECEIVES_PUBLIC_ASSISTANCE FLOAT, COUNT_PUBLIC_ASSISTANCE_UNKNOWN INT, PERCENT_PUBLIC_ASSISTANCE_UNKNOWN FLOAT, COUNT_PUBLIC_ASSISTANCE_TOTAL INT, PERCENT_PUBLIC_ASSISTANCE_TOTAL FLOAT) USING parquet OPTIONS ( path '${HDFSProperties.HADOOP_DATA}Demographic_Statistics_By_Zip_Code')"
+    val dropDemografic = "DROP TABLE Demographic_Statistics_By_Zip_Code"
+    val selectDemo = "select a from Demographic_Statistics_By_Zip_Code"
+    val create1 = "create table caca as select JURISDICTION_NAME from  Demographic_Statistics_By_Zip_Code  "
+/*
+    println("Explain plan physical")
+    //println(sqlExecutor.getQueryPlan(createDemografic).toString())
+    session.sql(createDemografic).explain()
+    session.sql(dropDemografic).explain()
+*/
+    println("Explain plan logical")
+    //ss.sessionState.sqlParser.parsePlan(query)
+
+    /*
+      DropTableCommand `Demographic_Statistics_By_Zip_Code`, false, false, false
+
+      'CreateTable `Demographic_Statistics_By_Zip_Code`, ErrorIfExists
+
+      'Project ['a]
+      +- 'UnresolvedRelation `Demographic_Statistics_By_Zip_Code`
+
+      'CreateTable `caca`, org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe, ErrorIfExists
+      +- 'Project ['JURISDICTION_NAME]
+         +- 'UnresolvedRelation `Demographic_Statistics_By_Zip_Code
+    */
+
+    val lp0 = session.sessionState.sqlParser.parsePlan(createDemografic)
+    //val table = lp0.collect { case r: CreateTable => r.tableDesc.identifier.table}
+    val table = lp0.collectFirst { case r: CreateTable => r.tableDesc.identifier.table}
+    //println(table.get(0))
+    println(table.get)
+
+    val lp1 = session.sessionState.sqlParser.parsePlan(dropDemografic)
+    //val table1 = lp1.collect { case r: DropTableCommand => r.tableName.table}
+    val table1 = lp1.collectFirst { case r: DropTableCommand => r.tableName.table}
+    //println(table1.get(0))
+    println(table1.get)
+
+    val lp2 = session.sessionState.sqlParser.parsePlan(selectDemo)
+    //val table2 = lp2.collect { case r: DropTableCommand => r.tableName.table}
+    val table3 = lp2.collectFirst{ case r: Project => { lp2.collect { case r: UnresolvedRelation => r.tableName} }}
+    println(table3.get.get(0))
+
+
+    val lp3 = session.sessionState.sqlParser.parsePlan(create1)
+    val table4 = lp3.collectFirst { case r: CreateTable => r.tableDesc.identifier.table}
+    println(table4.get)
+
+
 
   }
 
