@@ -9,7 +9,7 @@ import org.apache.kafka.clients.admin.AdminClientConfig
 
 object KafkaProperties {
 
-  private val brokers =  "localhost:9092"
+  val brokers =  "localhost:9092"
   private val QueryTopic : String = "SummitQuery"
   private val ServerTopic : String = "ServerTopic"
 
@@ -19,7 +19,7 @@ object KafkaProperties {
 
   def getStandardTopic(typeProCons: String ): String = {
 
-    var result = "default"
+    var result = typeProCons
 
     if (typeProCons == "query") {
       result=this.QueryTopic
@@ -72,6 +72,13 @@ object KafkaProperties {
     var result = 1
     val topicsActives = listTopics()
 
+    /*
+    if (topicsActives.count(t => { t.equals(topic) }) > 0) {
+      admin.deleteTopics(List(topic).asJavaCollection)
+      result=0
+    }
+    */
+
     topicsActives.foreach(
       t => {
         if (t.equals(topic)) {
@@ -100,7 +107,11 @@ object KafkaProperties {
     KafkaPropsProd
   }
 
-  def createKafkaPropsCons(groupId : String, deserializer: String = "org.apache.kafka.common.serialization.StringDeserializer"): Properties = {
+  def createKafkaPropsCons(
+                            groupId : String
+                            ,deserializer: String = "org.apache.kafka.common.serialization.StringDeserializer"
+                          ): Properties = {
+
     val KafkaPropsCons = new Properties()
     KafkaPropsCons.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaProperties.brokers)
     KafkaPropsCons.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true")

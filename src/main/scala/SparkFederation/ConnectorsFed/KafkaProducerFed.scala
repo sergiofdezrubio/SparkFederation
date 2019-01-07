@@ -33,7 +33,6 @@ class KafkaProducerFed [U] (val idClient: String,
 
 
   def sendMessage (data : U , topic: String): Unit = {
-    println ("** " + data.toString)
     producer.send(new ProducerRecord[String,U](topic, data)).get()
 
 

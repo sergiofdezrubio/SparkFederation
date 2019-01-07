@@ -11,22 +11,36 @@ class ServerHandler(implicit ss : SparkSession){
   val hdfsHandler = new HDFSHandler()
 
 
-  def initServer () : Unit = {
+  def initServer () : Boolean = {
+
+    var flgInit = false
     val OpTablas = zkMaster.getChildern(ZooKeeperProperties.ZNODE_HDFS)
 
     if (OpTablas.isDefined){
       OpTablas.get.map(this.getHDFSTable)
+      flgInit = true
     }
-
+    flgInit
   }
 
-  def registerTable(name : String , createStatement: String ) : Unit = {
-    this.zkMaster.createZnode(ZooKeeperProperties.ZNODE_HDFS + "/" + name , createStatement.getBytes )
+  def registerTable(tableName : String , createStatement: String ) : Unit = {
+    zkMaster.createZnode(ZooKeeperProperties.ZNODE_HDFS + "/" + tableName  , createStatement.getBytes )
+  }
+
+  def removeTable (tableName : String) : Unit   = {
+    zkMaster.deleteZnode(ZooKeeperProperties.ZNODE_HDFS + "/" + tableName )
+  }
+
+  def getMetaData(tableName : String) : String  = {
+    zkMaster.getData(ZooKeeperProperties.ZNODE_HDFS + "/" +  tableName ).get.map(_.toChar).mkString
+  }
+  def checkMetaData (tableName : String) : Boolean = {
+    if(zkMaster.existsZnode(ZooKeeperProperties.ZNODE_HDFS + "/" + tableName ).isDefined) true else false
   }
 
 
   @throws(classOf[TableNoExistFed])
-  def getHDFSTable(tableName: String): Unit = {
+  def getHDFSTable(tableName: String): DataFrame = {
 
     //val rawData = zkMaster.getData("/hdfs/prueba").get
     //val netData = (rawData.map(_.toChar)).mkString
@@ -38,6 +52,7 @@ class ServerHandler(implicit ss : SparkSession){
     }
 
     ss.sql(rawMetaData.get.map(_.toChar).mkString)
+
   }
 
 

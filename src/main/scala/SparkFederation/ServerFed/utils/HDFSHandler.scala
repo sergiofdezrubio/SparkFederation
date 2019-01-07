@@ -247,17 +247,19 @@ class HDFSHandler  (implicit ss: SparkSession) {
       , "Demographic_Statistics_By_Zip_Code"
       ,schemaDSbZ)
 
-    println("**************** Se crean las tablas en  Spark")
-    ss.sql(createDemografic)
-    ss.sql(createConsumer)
+    /*
+        println("**************** Se crean las tablas en  Spark")
+        ss.sql(createDemografic)
+        ss.sql(createConsumer)
 
-    println("**************** Se persisten las tablas en Zookeeper")
-    serverExecutor.registerTable("Demographic_Statistics_By_Zip_Code", createDemografic)
-    serverExecutor.registerTable("Consumer_Complaints", createConsumer)
+        println("**************** Se persisten las tablas en Zookeeper")
+        serverExecutor.registerTable("Demographic_Statistics_By_Zip_Code", createDemografic)
+        serverExecutor.registerTable("Consumer_Complaints", createConsumer)
 
-    println("**************** Se consultan las tablas")
-    ss.sql("select * from Demographic_Statistics_By_Zip_Code").show
-    ss.sql("select * from Consumer_Complaints").show
+        println("**************** Se consultan las tablas")
+        ss.sql("select * from Demographic_Statistics_By_Zip_Code").show
+        ss.sql("select * from Consumer_Complaints").show
+    */
   }
 
 }

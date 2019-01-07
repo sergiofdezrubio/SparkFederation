@@ -1,6 +1,6 @@
 package SparkFederation.Lanzador
 
-
+import org.apache.spark.sql.{Column, DataFrame, SparkSession, functions}
 import java.io.{ByteArrayInputStream, ObjectInputStream}
 import java.time.Duration
 import java.util.{Collections, Properties}
@@ -14,7 +14,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecords
 
 import scala.collection.JavaConversions._
 import org.apache.spark.{SparkConf, SparkContext}
-import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, Project, SubqueryAlias}
 import java.util.Properties
 
@@ -94,6 +93,8 @@ object Launcher extends App {
     logicalPlan.collect{ case r : SubqueryAlias => (r.alias,r.child)  }
   }
 */
+  // para crear un dataset con un esquema a partir de un array column
+  def getColAtIndex1(id:Int,schema: Array[String]): org.apache.spark.sql.Column = org.apache.spark.sql.functions.col(s"value")(id).as(schema(id))
 
   override def main(args : Array[String]): Unit = {
     /*
@@ -398,73 +399,154 @@ object Launcher extends App {
         session.sql("SHOW CREATE TABLE Consumer_Complaints").show(1, false)
   */
 
-    implicit val session = SparkProperties.ss
+    implicit val session: SparkSession = SparkProperties.ss
 
     //val hdfsHandler = new HDFSHandler()
-    val serverExecutor = new ServerHandler()
-
     //hdfsHandler.iniDatasets()
+
+    //val serverExecutor = new ServerHandler()
     //serverExecutor.initServer
+
+   // KafkaProperties.deleteTopic("ClientTopic_1")
+
+    val client = new SimpleClientFed("cliente-1", "StandarClient")
+    val server = new SimpleServerFed("server","serverCluster")
+    val query = "select b.JURISDICTION_NAME,a.ZIP_code,a.Complaint_ID from Consumer_Complaints a inner join Demographic_Statistics_By_Zip_Code b on a.ZIP_code = b.JURISDICTION_NAME"
+
+    //val query = "select b.JURISDICTION_NAME,a.ZIP_code from Consumer_Complaints a inner join Demographic_Statistics_By_Zip_Code b on a.ZIP_code = b.JURISDICTION_NAME"
+
+    println(s"Server Ok: ${server.initializeServer}")
+    println(s"Client Topic: ${client.topicClient}")
+
+    /*
+      client.summitQuery(query)
+
+      server.mainServer
+
+
+      //println("******* Pasa por aqui")
+      //val resultado = client.getStatusResult()
+
+      //println(resultado)
+    */
+
+    // hay que crear dos topics para cada cliente, uno para la respuesta y otro para el dataframe
+
+    val message = new KafkaClientMessage("ClientTopic_1", query)
+    val result = server.exeQueryFed(message)
+
+    val dfResult = result.dataframe.get
+
+
+    println ("junta todo en una columna")
+    val result111 = dfResult.withColumn("value", org.apache.spark.sql.functions.split(
+      org.apache.spark.sql.functions.concat_ws(";",  dfResult.schema.fieldNames.map(c=> org.apache.spark.sql.functions.col(c)):_*), ";"
+    ))
+    result111.show(10,false)
+
+
+    println("clase")
+    result111.printSchema()
+
+    val schemaRes = dfResult.schema.fieldNames
+
+    // El incompleto pero bueno
+    //val columns: IndexedSeq[Column] = (0 to 1).map(getColAtIndex)
+    //result111.select(columns: _*).show
+
+    result111.show(false)
+    // Separa un array column en un datast con vatrias columnas segun su esquema
+    val columns: IndexedSeq[Column] = (0 to (schemaRes.size -1)).map(getColAtIndex1(_,schemaRes))
+    result111.select(columns: _*).show
+
+
+
+
+    /*
+
+    println ("se añade columna key")
+    val dfnet = preFinal.withColumn("key", org.apache.spark.sql.functions.monotonically_increasing_id())
+    dfnet.show()
+
+    println ("se envia")
+    server.sendResult("ClientTopic_2-Result", dfnet)
+
+    println ("se recibe")
+    val dfClient = client.getQueryResult()
+
+   val dfClient1 =  dfClient.selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)")
+
+    dfClient1.show(10,false)
+    val dfClient2 = dfClient1.withColumn("_tmp", org.apache.spark.sql.functions.split(dfClient1.col("value"), ";"))
+
+    //dfClient2.select("_tmp").show(10,false)
+
+    var cnt = 0
+    var dfClient3 = dfClient2.select("_tmp")
+
+    schemaRes.foreach( t =>   {
+        dfClient3.withColumn(t, dfClient2.col("_tmp").getItem(cnt))
+      }
+    )
+    println("*** Dataset final")
+    dfClient3.show(10,false)
+
+
+    println("***** despues de concatenar")
+    val preFinal = result111.select("value")
+    //org.apache.spark.sql.functions.split(dfClient1['value'],";")
+
+*/
+
+
+
+    /*
+    println("******* Pasa por aqui")
+    val resultado = client.getResult()
+
+    println("Resultado desde el cliente: ")
+    //resultado.dataframe.get.show()
+    println(resultado)
+
+    client.shutdown()*/
 
 
     /*
     println("**************** Se consultan las tablas")
     session.sql("select * from Demographic_Statistics_By_Zip_Code").show
     session.sql("select * from Consumer_Complaints").show
-    */
-
     val sqlExecutor = new SparkSQLHandler(serverExecutor)
     // CreateDataSourceTableCommand
-    val createDemografic = s"CREATE TABLE db1.Demographic_Statistics_By_Zip_Code (JURISDICTION_NAME INT, COUNT_PARTICIPANTS INT, COUNT_FEMALE INT, PERCENT_FEMALE FLOAT, COUNT_MALE INT, PERCENT_MALE FLOAT, COUNT_GENDER_UNKNOWN INT, PERCENT_GENDER_UNKNOWN FLOAT, COUNT_GENDER_TOTAL INT, PERCENT_GENDER_TOTAL FLOAT, COUNT_PACIFIC_ISLANDER INT, PERCENT_PACIFIC_ISLANDER FLOAT, COUNT_HISPANIC_LATINO INT, PERCENT_HISPANIC_LATINO FLOAT, COUNT_AMERICAN_INDIAN INT, PERCENT_AMERICAN_INDIAN FLOAT, COUNT_ASIAN_NON_HISPANIC INT, PERCENT_ASIAN_NON_HISPANIC FLOAT, COUNT_WHITE_NON_HISPANIC INT, PERCENT_WHITE_NON_HISPANIC FLOAT, COUNT_BLACK_NON_HISPANIC INT, PERCENT_BLACK_NON_HISPANIC FLOAT, COUNT_OTHER_ETHNICITY INT, PERCENT_OTHER_ETHNICITY FLOAT, COUNT_ETHNICITY_UNKNOWN INT, PERCENT_ETHNICITY_UNKNOWN FLOAT, COUNT_ETHNICITY_TOTAL INT, PERCENT_ETHNICITY_TOTAL INT, COUNT_PERMANENT_RESIDENT_ALIEN INT, PERCENT_PERMANENT_RESIDENT_ALIEN FLOAT, COUNT_US_CITIZEN INT, PERCENT_US_CITIZEN FLOAT, COUNT_OTHER_CITIZEN_STATUS INT, PERCENT_OTHER_CITIZEN_STATUS FLOAT, COUNT_CITIZEN_STATUS_UNKNOWN INT, PERCENT_CITIZEN_STATUS_UNKNOWN FLOAT, COUNT_CITIZEN_STATUS_TOTAL INT, PERCENT_CITIZEN_STATUS_TOTAL FLOAT, COUNT_RECEIVES_PUBLIC_ASSISTANCE INT, PERCENT_RECEIVES_PUBLIC_ASSISTANCE FLOAT, COUNT_NRECEIVES_PUBLIC_ASSISTANCE INT, PERCENT_NRECEIVES_PUBLIC_ASSISTANCE FLOAT, COUNT_PUBLIC_ASSISTANCE_UNKNOWN INT, PERCENT_PUBLIC_ASSISTANCE_UNKNOWN FLOAT, COUNT_PUBLIC_ASSISTANCE_TOTAL INT, PERCENT_PUBLIC_ASSISTANCE_TOTAL FLOAT) USING parquet OPTIONS ( path '${HDFSProperties.HADOOP_DATA}Demographic_Statistics_By_Zip_Code')"
-    val dropDemografic = "DROP TABLE Demographic_Statistics_By_Zip_Code"
-    val selectDemo = "select a from Demographic_Statistics_By_Zip_Code"
+    val createDemografic = s"CREATE TABLE Demographic_Statistics_By_Zip_Code (JURISDICTION_NAME INT, COUNT_PARTICIPANTS INT, COUNT_FEMALE INT, PERCENT_FEMALE FLOAT, COUNT_MALE INT, PERCENT_MALE FLOAT, COUNT_GENDER_UNKNOWN INT, PERCENT_GENDER_UNKNOWN FLOAT, COUNT_GENDER_TOTAL INT, PERCENT_GENDER_TOTAL FLOAT, COUNT_PACIFIC_ISLANDER INT, PERCENT_PACIFIC_ISLANDER FLOAT, COUNT_HISPANIC_LATINO INT, PERCENT_HISPANIC_LATINO FLOAT, COUNT_AMERICAN_INDIAN INT, PERCENT_AMERICAN_INDIAN FLOAT, COUNT_ASIAN_NON_HISPANIC INT, PERCENT_ASIAN_NON_HISPANIC FLOAT, COUNT_WHITE_NON_HISPANIC INT, PERCENT_WHITE_NON_HISPANIC FLOAT, COUNT_BLACK_NON_HISPANIC INT, PERCENT_BLACK_NON_HISPANIC FLOAT, COUNT_OTHER_ETHNICITY INT, PERCENT_OTHER_ETHNICITY FLOAT, COUNT_ETHNICITY_UNKNOWN INT, PERCENT_ETHNICITY_UNKNOWN FLOAT, COUNT_ETHNICITY_TOTAL INT, PERCENT_ETHNICITY_TOTAL INT, COUNT_PERMANENT_RESIDENT_ALIEN INT, PERCENT_PERMANENT_RESIDENT_ALIEN FLOAT, COUNT_US_CITIZEN INT, PERCENT_US_CITIZEN FLOAT, COUNT_OTHER_CITIZEN_STATUS INT, PERCENT_OTHER_CITIZEN_STATUS FLOAT, COUNT_CITIZEN_STATUS_UNKNOWN INT, PERCENT_CITIZEN_STATUS_UNKNOWN FLOAT, COUNT_CITIZEN_STATUS_TOTAL INT, PERCENT_CITIZEN_STATUS_TOTAL FLOAT, COUNT_RECEIVES_PUBLIC_ASSISTANCE INT, PERCENT_RECEIVES_PUBLIC_ASSISTANCE FLOAT, COUNT_NRECEIVES_PUBLIC_ASSISTANCE INT, PERCENT_NRECEIVES_PUBLIC_ASSISTANCE FLOAT, COUNT_PUBLIC_ASSISTANCE_UNKNOWN INT, PERCENT_PUBLIC_ASSISTANCE_UNKNOWN FLOAT, COUNT_PUBLIC_ASSISTANCE_TOTAL INT, PERCENT_PUBLIC_ASSISTANCE_TOTAL FLOAT) USING parquet OPTIONS ( path '${HDFSProperties.HADOOP_DATA}Demographic_Statistics_By_Zip_Code')"
+    val dropDemografic = "DROP TABLE Demographic_Statistics_By_Zip_Code1"
+    val selectDemo = "select * from Demographic_Statistics_By_Zip_Code a "
+    val selectDemo1 = "select * from Demographic_Statistics_By_Zip_Code a inner join caca b on a.a1 = b.b1"
     val create1 = "create table caca as select JURISDICTION_NAME from  Demographic_Statistics_By_Zip_Code  "
-/*
-    println("Explain plan physical")
-    //println(sqlExecutor.getQueryPlan(createDemografic).toString())
-    session.sql(createDemografic).explain()
-    session.sql(dropDemografic).explain()
-*/
-    println("Explain plan logical")
-    //ss.sessionState.sqlParser.parsePlan(query)
+    val createDemografic1 = s"CREATE TABLE Demographic_Statistics_By_Zip_Code1 (JURISDICTION_NAME INT, COUNT_PARTICIPANTS INT, COUNT_FEMALE INT, PERCENT_FEMALE FLOAT, COUNT_MALE INT, PERCENT_MALE FLOAT, COUNT_GENDER_UNKNOWN INT, PERCENT_GENDER_UNKNOWN FLOAT, COUNT_GENDER_TOTAL INT, PERCENT_GENDER_TOTAL FLOAT, COUNT_PACIFIC_ISLANDER INT, PERCENT_PACIFIC_ISLANDER FLOAT, COUNT_HISPANIC_LATINO INT, PERCENT_HISPANIC_LATINO FLOAT, COUNT_AMERICAN_INDIAN INT, PERCENT_AMERICAN_INDIAN FLOAT, COUNT_ASIAN_NON_HISPANIC INT, PERCENT_ASIAN_NON_HISPANIC FLOAT, COUNT_WHITE_NON_HISPANIC INT, PERCENT_WHITE_NON_HISPANIC FLOAT, COUNT_BLACK_NON_HISPANIC INT, PERCENT_BLACK_NON_HISPANIC FLOAT, COUNT_OTHER_ETHNICITY INT, PERCENT_OTHER_ETHNICITY FLOAT, COUNT_ETHNICITY_UNKNOWN INT, PERCENT_ETHNICITY_UNKNOWN FLOAT, COUNT_ETHNICITY_TOTAL INT, PERCENT_ETHNICITY_TOTAL INT, COUNT_PERMANENT_RESIDENT_ALIEN INT, PERCENT_PERMANENT_RESIDENT_ALIEN FLOAT, COUNT_US_CITIZEN INT, PERCENT_US_CITIZEN FLOAT, COUNT_OTHER_CITIZEN_STATUS INT, PERCENT_OTHER_CITIZEN_STATUS FLOAT, COUNT_CITIZEN_STATUS_UNKNOWN INT, PERCENT_CITIZEN_STATUS_UNKNOWN FLOAT, COUNT_CITIZEN_STATUS_TOTAL INT, PERCENT_CITIZEN_STATUS_TOTAL FLOAT, COUNT_RECEIVES_PUBLIC_ASSISTANCE INT, PERCENT_RECEIVES_PUBLIC_ASSISTANCE FLOAT, COUNT_NRECEIVES_PUBLIC_ASSISTANCE INT, PERCENT_NRECEIVES_PUBLIC_ASSISTANCE FLOAT, COUNT_PUBLIC_ASSISTANCE_UNKNOWN INT, PERCENT_PUBLIC_ASSISTANCE_UNKNOWN FLOAT, COUNT_PUBLIC_ASSISTANCE_TOTAL INT, PERCENT_PUBLIC_ASSISTANCE_TOTAL FLOAT) USING parquet OPTIONS ( path '${HDFSProperties.HADOOP_DATA}Demographic_Statistics_By_Zip_Code')"
+    val message = new KafkaClientMessage("client-1", createDemografic1)
+    val message2 = new KafkaClientMessage("client-1", dropDemografic)
+    println("creates")
+    //server.exeQueryFed(message)
+    session.sql(createDemografic1)
+    server.exeQueryFed(message2)
+    //server.exeQueryFed(message2)
+    println("Drop")
 
-    /*
-      DropTableCommand `Demographic_Statistics_By_Zip_Code`, false, false, false
+    println("Select ")
+    server.exeQueryFed(message).show()
 
-      'CreateTable `Demographic_Statistics_By_Zip_Code`, ErrorIfExists
-
-      'Project ['a]
-      +- 'UnresolvedRelation `Demographic_Statistics_By_Zip_Code`
-
-      'CreateTable `caca`, org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe, ErrorIfExists
-      +- 'Project ['JURISDICTION_NAME]
-         +- 'UnresolvedRelation `Demographic_Statistics_By_Zip_Code
+    println("errors")
+    server.exeQueryFed(message2)
     */
 
-    val lp0 = session.sessionState.sqlParser.parsePlan(createDemografic)
-    //val table = lp0.collect { case r: CreateTable => r.tableDesc.identifier.table}
-    val table = lp0.collectFirst { case r: CreateTable => r.tableDesc.identifier.table}
-    //println(table.get(0))
-    println(table.get)
-
-    val lp1 = session.sessionState.sqlParser.parsePlan(dropDemografic)
-    //val table1 = lp1.collect { case r: DropTableCommand => r.tableName.table}
-    val table1 = lp1.collectFirst { case r: DropTableCommand => r.tableName.table}
-    //println(table1.get(0))
-    println(table1.get)
-
-    val lp2 = session.sessionState.sqlParser.parsePlan(selectDemo)
-    //val table2 = lp2.collect { case r: DropTableCommand => r.tableName.table}
-    val table3 = lp2.collectFirst{ case r: Project => { lp2.collect { case r: UnresolvedRelation => r.tableName} }}
-    println(table3.get.get(0))
-
-
-    val lp3 = session.sessionState.sqlParser.parsePlan(create1)
-    val table4 = lp3.collectFirst { case r: CreateTable => r.tableDesc.identifier.table}
-    println(table4.get)
 
 
 
   }
+  // Este es el bueno
+  def getColAtIndex(id:Int): org.apache.spark.sql.Column = org.apache.spark.sql.functions.col(s"value")(id).as(s"column1_${id+1}")
+
+  // TODO
 
 }
+
