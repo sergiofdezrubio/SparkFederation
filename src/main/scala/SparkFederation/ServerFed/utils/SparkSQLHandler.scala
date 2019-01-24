@@ -20,7 +20,7 @@ class SparkSQLHandler (coreServer : ServerHandler) (implicit ss : SparkSession )
   def getTypeQuery (query : String) : (String, String, String) = {
     val logicalPlan = ss.sessionState.sqlParser.parsePlan(query)
     val typeQuery  = logicalPlan.collectFirst {
-        case r: CreateTable      => ( "CreateStatement" , r.tableDesc.identifier.table, query)
+        case r: CreateTable      => ("CreateStatement" , r.tableDesc.identifier.table, query)
         case r: DropTableCommand => ("DropStatement" ,r.tableName.table, query)
         case r: Project          => ("SelectStatement", "" , query )
       }

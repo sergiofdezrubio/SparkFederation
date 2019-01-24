@@ -33,6 +33,8 @@ class KafkaConsumerFed[U] (val groupId : String,
       print ("$$$$ -> " + typeCons + " - " + KafkaProperties.getStandardTopic(typeCons))
 
       kafConsumer.subscribe(Collections.singletonList(KafkaProperties.getStandardTopic(typeCons)))
+      println(kafConsumer.listTopics())
+
       kafConsumer
     }
 

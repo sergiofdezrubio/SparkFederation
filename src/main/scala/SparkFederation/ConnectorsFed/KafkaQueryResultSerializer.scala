@@ -26,7 +26,6 @@ class KafkaQueryResultSerializer extends Serializer[KafkaQueryResult]{
     catch {
 
       case ex:Exception => {
-        println ("************************* fallo aqui ")
         throw new Exception(ex.getMessage)
       }
     }

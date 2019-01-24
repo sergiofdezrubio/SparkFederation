@@ -4,7 +4,7 @@ import java.util.Properties
 import SparkFederation.Lib.KafkaProperties
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
 
-class KafkaProducerFed [U] (val idClient: String,
+class KafkaProducerFed [U] (val idProducer: String,
                             val typeProd: String,
                             val serializer: String) {
 
@@ -17,15 +17,15 @@ class KafkaProducerFed [U] (val idClient: String,
   }
 
   // reference: https://github.com/smallnest/kafka-example-in-scala/blob/master/src/main/scala/com/colobu/kafka/ScalaProducerExample.scala
-  val producer = configureProducer(this.idClient,this.typeProd)
+  val producer = configureProducer(this.idProducer,this.typeProd)
 
-  def configureProducer( idClient: String, typeProd: String) : KafkaProducer [String, U] = {
+  def configureProducer( idProducer: String, typeProd: String) : KafkaProducer [String, U] = {
     val topic = KafkaProperties.getStandardTopic(this.typeProd)
 
     //val properties  = new KafkaProperties(idClient,this.serializer)
     //val kafProducer = new KafkaProducer[String, U](properties.KafkaPropsProd)
 
-    val properties  = KafkaProperties.createKafkaPropsProd(idClient,this.serializer)
+    val properties  = KafkaProperties.createKafkaPropsProd(idProducer,this.serializer)
     val kafProducer = new KafkaProducer[String, U](properties)
 
     kafProducer

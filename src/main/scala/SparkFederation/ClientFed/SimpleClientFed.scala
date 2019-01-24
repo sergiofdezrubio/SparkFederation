@@ -1,25 +1,41 @@
 package SparkFederation.ClientFed
 
 import SparkFederation.ConnectorsFed.{KafkaClientMessage, KafkaConsumerFed, KafkaProducerFed, KafkaQueryResult}
+import SparkFederation.Lanzador.Launcher.getColAtIndex1
 import SparkFederation.Lib.KafkaProperties
-import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.{Column, DataFrame, SparkSession}
 
 import scala.collection.JavaConversions._
 
-class SimpleClientFed (val idClient : String, val groupId : String = "StandarClient") (implicit  ss : SparkSession) {
+class SimpleClientFed (val groupId : String = "StandarClient") (implicit  ss : SparkSession) {
 
-  val querySummiter  = new KafkaProducerFed[KafkaClientMessage](this.idClient,KafkaProperties.getStandardTopic("query"),"SparkFederation.ConnectorsFed.KafkaClientSerializer")
+  //final val CLIENT_ID = KafkaProperties.createUniqueId()
+  final val CLIENT_ID = "ce290f70-ef44-470b-9679-ce13e29f3a3a"
+  val querySummiter  = new KafkaProducerFed[KafkaClientMessage](CLIENT_ID,KafkaProperties.getStandardTopic("query"),"SparkFederation.ConnectorsFed.KafkaClientSerializer")
   val serverListener = new KafkaConsumerFed[String](this.groupId,KafkaProperties.getStandardTopic("server"))
-  val topicClient    = createClientTopic()
-  val topicClientResult = createClientTopic("-Result")
-  val clientListener = new KafkaConsumerFed[KafkaQueryResult](this.groupId,this.topicClient,"SparkFederation.ConnectorsFed.KafkaQueryResultDeserializer")
+  val topicsClient    = createClientTopics(CLIENT_ID)
+  val clientListener = new KafkaConsumerFed[KafkaQueryResult](this.groupId,this.topicsClient.get(0),"SparkFederation.ConnectorsFed.KafkaQueryResultDeserializer")
+
+  def createClientTopics(clientId : String) : Seq[String] = Seq(s"${groupId}_${clientId}",s"${groupId}_${clientId}-RESULT" ).map( KafkaProperties.createTopic(_))
+
+  def getColAtIndex(id:Int,schema: Array[String]): org.apache.spark.sql.Column = org.apache.spark.sql.functions.col(s"valueArray")(id).as(schema(id))
+
+  def clientMainQueryExecution (query : String) : Unit = {
+    summitQuery(query)
+    val queryStatusResult = getStatusResult()
+    var dfSelect = Option.empty[DataFrame]
 
 
-  def createClientTopic(typeTopic : String = "") : String = {
-    val topic= KafkaProperties.createClientTopicId()
-    println("** client topic  " + topic )
-    val result = KafkaProperties.createTopic(topic + typeTopic)
-    result
+    if (queryStatusResult.typeQuery == "SelectStatement"){
+      val querySchema = queryStatusResult.schemaDataframe.get
+      val columns: IndexedSeq[Column] = (0 to (querySchema.size -1)).map(getColAtIndex(_,querySchema))
+      val selectResult = getQueryResult()
+      dfSelect = Option[DataFrame](selectResult.select(columns: _*))
+    }
+
+    if (dfSelect.isDefined){
+      dfSelect.get.show(false)
+    }
   }
 
   def getQueryResult() : DataFrame = {
@@ -28,46 +44,37 @@ class SimpleClientFed (val idClient : String, val groupId : String = "StandarCli
       .read
       .format("kafka")
       .option("kafka.bootstrap.servers", KafkaProperties.brokers)
-      .option("subscribe", topicClientResult)
+      .option("subscribe", topicsClient.get(1))
       .load()
-    df
+
+    val dfTemp = df.selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)")
+
+    val dfTemp1 = dfTemp.withColumn("newValue", org.apache.spark.sql.functions.expr("substring(value, 2, length(value)-2)"))
+    dfTemp1.withColumn("valueArray", org.apache.spark.sql.functions.split(dfTemp1("newValue"), ",").cast("array<String>"))
+
   }
 
 
   def summitQuery (query: String): Unit = {
 
     // create message to sent
-    val message = new KafkaClientMessage(this.topicClient,query)
+    val message = new KafkaClientMessage(this.topicsClient,query)
     // sent query by querySummiter
     this.querySummiter.sendMessage(message, KafkaProperties.getStandardTopic( "query"))
     // listen to the new topic
 
     println("--- Se ha enviado la query: " + query)
-    /*
-    val consumer = this.clientListener.consumer
 
-    var flag = 0
-    while (flag == 0) {
-
-      val records = consumer.poll(100)
-
-      println("Antes bucle " + records.count() + " vacio: " + records.isEmpty())
-
-      for (record <- records.iterator()) {
-        println("entro")
-        println("Received message: (" + record.key() + ", " + record.value() + ") at offset " + record.offset())
-        flag = 1
-      }
-
-    }
-    */
   }
 
   def getStatusResult(): KafkaQueryResult ={
 
-    val consumer = this.clientListener.consumer
+
+
+    val consumer = clientListener.consumer
     var result :  KafkaQueryResult = null
     var flag = 0
+
 
     while (flag == 0) {
 
@@ -90,7 +97,7 @@ class SimpleClientFed (val idClient : String, val groupId : String = "StandarCli
   }
 
   def shutdown (): Unit ={
-    KafkaProperties.deleteTopic(this.topicClient)
+    topicsClient.map(KafkaProperties.deleteTopic)
 
   }
 

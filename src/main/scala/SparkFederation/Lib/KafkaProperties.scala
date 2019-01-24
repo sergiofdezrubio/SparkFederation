@@ -6,6 +6,8 @@ import java.util.Properties
 import org.apache.kafka.clients.admin.{AdminClient, ListTopicsOptions, NewTopic}
 import scala.collection.JavaConverters._
 import org.apache.kafka.clients.admin.AdminClientConfig
+import java.util.UUID.randomUUID
+
 
 object KafkaProperties {
 
@@ -29,6 +31,9 @@ object KafkaProperties {
     }
     result
   }
+
+  def createUniqueId(): String = randomUUID().toString
+
 
   def createClientTopicId (): String = {
 
@@ -97,13 +102,12 @@ object KafkaProperties {
 
   }
 
-  def createKafkaPropsProd(groupId : String, serializer: String): Properties = {
+  def createKafkaPropsProd(producerId : String, serializer: String): Properties = {
     val KafkaPropsProd = new  Properties()
     KafkaPropsProd.put("bootstrap.servers", KafkaProperties.brokers)
-    KafkaPropsProd.put("client.id", groupId)
+    KafkaPropsProd.put("client.id", producerId)
     KafkaPropsProd.put("key.serializer", serializer)
     KafkaPropsProd.put("value.serializer", serializer)
-
     KafkaPropsProd
   }
 
@@ -120,7 +124,11 @@ object KafkaProperties {
     KafkaPropsCons.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, "30000")
     KafkaPropsCons.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, deserializer)
     KafkaPropsCons.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, deserializer)
-    KafkaPropsCons.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,"latest")
+    KafkaPropsCons.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,"earliest")
+    //KafkaPropsCons.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,"latest") // esto hacia que el primer mensaje no se leyera
+    //KafkaPropsCons.put("enable.auto.commit", "false") // nuevo <- Estudiar si poner
+    //KafkaPropsCons.put("auto.offset.reset", "earliest") // nuevo este es elque hace eso
+
     KafkaPropsCons
   }
 }

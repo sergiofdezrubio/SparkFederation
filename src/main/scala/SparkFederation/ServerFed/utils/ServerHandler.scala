@@ -11,9 +11,11 @@ class ServerHandler(implicit ss : SparkSession){
   val hdfsHandler = new HDFSHandler()
 
 
-  def initServer () : Boolean = {
+  def initServer (idServer : String , groupId: String) : Boolean = {
 
     var flgInit = false
+
+    //zkMaster.createZnode(s"${ZooKeeperProperties.ZNODE_SERVER}/${idServer}" ,s"${groupId}_${idServer}".getBytes())
     val OpTablas = zkMaster.getChildern(ZooKeeperProperties.ZNODE_HDFS)
 
     if (OpTablas.isDefined){
@@ -21,7 +23,22 @@ class ServerHandler(implicit ss : SparkSession){
       flgInit = true
     }
     flgInit
+
   }
+
+  def getServersTopics (idServer : String ) : Array[String] = {
+    val serversId = zkMaster.getChildern(ZooKeeperProperties.ZNODE_SERVER)
+      .getOrElse(Array(idServer))
+      .filter(p => { p != idServer})
+
+    val topicsRaw = serversId.map(t => {
+      println(s"${ZooKeeperProperties.ZNODE_SERVER}/${t}")
+      zkMaster.getData(s"${ZooKeeperProperties.ZNODE_SERVER}/${t}").get.map(_.toChar)
+    })
+
+    topicsRaw.map(_.mkString)
+  }
+
 
   def registerTable(tableName : String , createStatement: String ) : Unit = {
     zkMaster.createZnode(ZooKeeperProperties.ZNODE_HDFS + "/" + tableName  , createStatement.getBytes )

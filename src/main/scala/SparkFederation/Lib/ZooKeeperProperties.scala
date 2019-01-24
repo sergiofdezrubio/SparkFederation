@@ -8,5 +8,6 @@ object ZooKeeperProperties {
   val ZK_HOST="localhost"
   val ZNODE_HDFS="/hdfs"
   val ZNODE_TOPIC="/client_session"
+  val ZNODE_SERVER="/servers_sesion"
 
 }

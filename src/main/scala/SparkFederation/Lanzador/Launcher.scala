@@ -6,8 +6,8 @@ import java.time.Duration
 import java.util.{Collections, Properties}
 
 import org.apache.zookeeper.ZooKeeper
-import SparkFederation.ConnectorsFed.{KafkaClientMessage, KafkaConsumerFed, KafkaProducerFed}
-import SparkFederation.Lib.{HDFSProperties, KafkaProperties, SparkProperties}
+import SparkFederation.ConnectorsFed.{KafkaClientMessage, KafkaConsumerFed, KafkaProducerFed, KafkaQueryResult}
+import SparkFederation.Lib.{HDFSProperties, KafkaProperties, SparkProperties, ZooKeeperProperties}
 import org.apache.kafka.clients.admin.{AdminClient, AdminClientConfig, ListTopicsOptions}
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.ConsumerRecords
@@ -404,19 +404,99 @@ object Launcher extends App {
     //val hdfsHandler = new HDFSHandler()
     //hdfsHandler.iniDatasets()
 
-    //val serverExecutor = new ServerHandler()
-    //serverExecutor.initServer
-
-   // KafkaProperties.deleteTopic("ClientTopic_1")
-
-    val client = new SimpleClientFed("cliente-1", "StandarClient")
-    val server = new SimpleServerFed("server","serverCluster")
+    val client = new SimpleClientFed( "StandarClient")
+    val server = new SimpleServerFed("serverCluster")
     val query = "select b.JURISDICTION_NAME,a.ZIP_code,a.Complaint_ID from Consumer_Complaints a inner join Demographic_Statistics_By_Zip_Code b on a.ZIP_code = b.JURISDICTION_NAME"
-
-    //val query = "select b.JURISDICTION_NAME,a.ZIP_code from Consumer_Complaints a inner join Demographic_Statistics_By_Zip_Code b on a.ZIP_code = b.JURISDICTION_NAME"
+    //val query = "CREATE TABLE Ejemplo2 (JURISDICTION_NAME INT, COUNT_PARTICIPANTS INT, COUNT_FEMALE INT, PERCENT_FEMALE FLOAT, COUNT_MALE INT, PERCENT_MALE FLOAT, COUNT_GENDER_UNKNOWN INT, PERCENT_GENDER_UNKNOWN FLOAT, COUNT_GENDER_TOTAL INT, PERCENT_GENDER_TOTAL FLOAT, COUNT_PACIFIC_ISLANDER INT, PERCENT_PACIFIC_ISLANDER FLOAT, COUNT_HISPANIC_LATINO INT, PERCENT_HISPANIC_LATINO FLOAT, COUNT_AMERICAN_INDIAN INT, PERCENT_AMERICAN_INDIAN FLOAT, COUNT_ASIAN_NON_HISPANIC INT, PERCENT_ASIAN_NON_HISPANIC FLOAT, COUNT_WHITE_NON_HISPANIC INT, PERCENT_WHITE_NON_HISPANIC FLOAT, COUNT_BLACK_NON_HISPANIC INT, PERCENT_BLACK_NON_HISPANIC FLOAT, COUNT_OTHER_ETHNICITY INT, PERCENT_OTHER_ETHNICITY FLOAT, COUNT_ETHNICITY_UNKNOWN INT, PERCENT_ETHNICITY_UNKNOWN FLOAT, COUNT_ETHNICITY_TOTAL INT, PERCENT_ETHNICITY_TOTAL INT, COUNT_PERMANENT_RESIDENT_ALIEN INT, PERCENT_PERMANENT_RESIDENT_ALIEN FLOAT, COUNT_US_CITIZEN INT, PERCENT_US_CITIZEN FLOAT, COUNT_OTHER_CITIZEN_STATUS INT, PERCENT_OTHER_CITIZEN_STATUS FLOAT, COUNT_CITIZEN_STATUS_UNKNOWN INT, PERCENT_CITIZEN_STATUS_UNKNOWN FLOAT, COUNT_CITIZEN_STATUS_TOTAL INT, PERCENT_CITIZEN_STATUS_TOTAL FLOAT, COUNT_RECEIVES_PUBLIC_ASSISTANCE INT, PERCENT_RECEIVES_PUBLIC_ASSISTANCE FLOAT, COUNT_NRECEIVES_PUBLIC_ASSISTANCE INT, PERCENT_NRECEIVES_PUBLIC_ASSISTANCE FLOAT, COUNT_PUBLIC_ASSISTANCE_UNKNOWN INT, PERCENT_PUBLIC_ASSISTANCE_UNKNOWN FLOAT, COUNT_PUBLIC_ASSISTANCE_TOTAL INT, PERCENT_PUBLIC_ASSISTANCE_TOTAL FLOAT) USING parquet OPTIONS ( path 'hdfs://127.0.0.1:9000/user/utad/workspace/SparkFederation/data/Demographic_Statistics_By_Zip_Code')"
 
     println(s"Server Ok: ${server.initializeServer}")
-    println(s"Client Topic: ${client.topicClient}")
+    println(s"Server ID: ${server.SERVER_ID}")
+    println(s"Client ID: ${client.CLIENT_ID}")
+    println(s"Client Topics: ${client.topicsClient.get(0)} -- ${client.topicsClient.get(1)}")
+
+    //server.updateServer()
+
+    // Este es el end2end
+
+
+          client.summitQuery(query)
+
+          // Servidor
+          val message = server.listenQuery()
+
+          println ("** antes de update Server")
+          server.updateServer()
+          println ("** Despues de update Server")
+          val resultQuery: KafkaQueryResult = server.exeQueryFed(message)
+
+          println ("** Resultado en el server")
+          println(resultQuery)
+
+          server.sendStatusResult(message.topicsId.get(0),resultQuery)
+
+          if (resultQuery.typeQuery == "SelectStatement"){
+            server.sendResult(message.topicsId.get(1),resultQuery.dataframe.get )
+          } else {
+              println ("** Se envia el resultado: ")
+              server.syncCluster(resultQuery.query)
+          }
+
+          // Cliente
+          println ("** Parte del cliente getStatusResult")
+          val statusQuery = client.getStatusResult()
+          var dfSelect = Option.empty[DataFrame]
+
+          if (statusQuery.typeQuery == "SelectStatement"){
+            val querySchema = statusQuery.schemaDataframe.get
+            val columns: IndexedSeq[Column] = (0 to (querySchema.size -1)).map(client.getColAtIndex(_,querySchema))
+          println ("** Parte del cliente getQueryResult")
+            val selectResult = client.getQueryResult()
+          println ("** despuesde ***+")
+            dfSelect = Option[DataFrame](selectResult.select(columns: _*))
+
+
+          }
+
+          if (dfSelect.isDefined){
+            dfSelect.get.show(false)
+          }
+
+        //var dfSelect = Option.empty[DataFrame]
+/*
+
+        if (statusQuery.typeQuery == "SelectStatement"){
+          println ("Imprimir Query")
+          val querySchema = statusQuery.schemaDataframe.get
+
+          val columns: IndexedSeq[Column] = (0 to (querySchema.size -1)).map(client.getColAtIndex(_,querySchema))
+
+          println ("*******************")
+          querySchema.foreach(println)
+          println (columns)
+
+          val selectResult = client.getQueryResult()
+
+          println ("*******************1")
+          selectResult.show(false)
+          selectResult.printSchema()
+
+          val dfSelect = selectResult.select(columns: _*)
+          //val columns: IndexedSeq[Column] = (0 to (schemaRes.size -1)).map(getColAtIndex1(_,schemaRes))
+          //result111.select(columns: _*).show
+
+          dfSelect.show(false)
+
+        }
+        */
+
+
+/*
+    println ("Imprimir Query")
+    if (dfSelect.isDefined){
+      println("Esta definido")
+      dfSelect.get.show(false)
+    }
+*/
 
     /*
       client.summitQuery(query)
@@ -431,7 +511,7 @@ object Launcher extends App {
     */
 
     // hay que crear dos topics para cada cliente, uno para la respuesta y otro para el dataframe
-
+    /*
     val message = new KafkaClientMessage("ClientTopic_1", query)
     val result = server.exeQueryFed(message)
 
@@ -458,7 +538,7 @@ object Launcher extends App {
     // Separa un array column en un datast con vatrias columnas segun su esquema
     val columns: IndexedSeq[Column] = (0 to (schemaRes.size -1)).map(getColAtIndex1(_,schemaRes))
     result111.select(columns: _*).show
-
+    */
 
 
 
@@ -544,7 +624,7 @@ object Launcher extends App {
 
   }
   // Este es el bueno
-  def getColAtIndex(id:Int): org.apache.spark.sql.Column = org.apache.spark.sql.functions.col(s"value")(id).as(s"column1_${id+1}")
+  //def getColAtIndex(id:Int): org.apache.spark.sql.Column = org.apache.spark.sql.functions.col(s"value")(id).as(s"column1_${id+1}")
 
   // TODO
 
