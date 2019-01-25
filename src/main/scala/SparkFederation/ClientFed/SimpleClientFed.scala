@@ -1,7 +1,6 @@
 package SparkFederation.ClientFed
 
 import SparkFederation.ConnectorsFed.{KafkaClientMessage, KafkaConsumerFed, KafkaProducerFed, KafkaQueryResult}
-import SparkFederation.Lanzador.Launcher.getColAtIndex1
 import SparkFederation.Lib.KafkaProperties
 import org.apache.spark.sql.{Column, DataFrame, SparkSession}
 

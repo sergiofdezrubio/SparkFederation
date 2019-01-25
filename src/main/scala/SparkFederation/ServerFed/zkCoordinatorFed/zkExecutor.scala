@@ -32,7 +32,7 @@ class zkExecutor () {
   @throws(classOf[KeeperException])
   @throws(classOf[InterruptedException])
   def getData(path : String ) : Option[Array[Byte]] = {
-    
+
     val zkSession = new ZkConnection().createZkSession()
     val znode = this.existsZnode(path)
     val connectedSignal = new CountDownLatch(1)
