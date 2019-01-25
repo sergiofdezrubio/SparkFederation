@@ -9,8 +9,7 @@ import scala.collection.JavaConversions._
 
 class SimpleClientFed (val groupId : String = "StandarClient") (implicit  ss : SparkSession) {
 
-  //final val CLIENT_ID = KafkaProperties.createUniqueId()
-  final val CLIENT_ID = "ce290f70-ef44-470b-9679-ce13e29f3a3a"
+  final val CLIENT_ID = KafkaProperties.createUniqueId()
   val querySummiter  = new KafkaProducerFed[KafkaClientMessage](CLIENT_ID,KafkaProperties.getStandardTopic("query"),"SparkFederation.ConnectorsFed.KafkaClientSerializer")
   val serverListener = new KafkaConsumerFed[String](this.groupId,KafkaProperties.getStandardTopic("server"))
   val topicsClient    = createClientTopics(CLIENT_ID)
@@ -63,8 +62,6 @@ class SimpleClientFed (val groupId : String = "StandarClient") (implicit  ss : S
     this.querySummiter.sendMessage(message, KafkaProperties.getStandardTopic( "query"))
     // listen to the new topic
 
-    println("--- Se ha enviado la query: " + query)
-
   }
 
   def getStatusResult(): KafkaQueryResult ={
@@ -80,11 +77,7 @@ class SimpleClientFed (val groupId : String = "StandarClient") (implicit  ss : S
 
       val records = consumer.poll(100)
 
-      println("Esto es el cliente: Antes bucle  " + records.count() + " vacio: " + records.isEmpty())
-
       for (record <- records.iterator()) {
-
-        println("Received message: (" + record.key() + ", " + record.value() + ") at offset " + record.offset())
         result = record.value()
         flag = 1
       }
@@ -98,7 +91,6 @@ class SimpleClientFed (val groupId : String = "StandarClient") (implicit  ss : S
 
   def shutdown (): Unit ={
     topicsClient.map(KafkaProperties.deleteTopic)
-
   }
 
 }

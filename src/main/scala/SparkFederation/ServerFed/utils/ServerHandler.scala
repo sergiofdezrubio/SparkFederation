@@ -15,7 +15,6 @@ class ServerHandler(implicit ss : SparkSession){
 
     var flgInit = false
 
-    //zkMaster.createZnode(s"${ZooKeeperProperties.ZNODE_SERVER}/${idServer}" ,s"${groupId}_${idServer}".getBytes())
     val OpTablas = zkMaster.getChildern(ZooKeeperProperties.ZNODE_HDFS)
 
     if (OpTablas.isDefined){

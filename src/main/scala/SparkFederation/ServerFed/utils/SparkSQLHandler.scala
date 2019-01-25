@@ -1,7 +1,5 @@
 package SparkFederation.ServerFed.utils
 
-import SparkFederation.Exceptions.TableNoExistFed
-import SparkFederation.Lib.{HDFSProperties, ZooKeeperProperties}
 import SparkFederation.ServerFed.zkCoordinatorFed.zkExecutor
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.catalyst.analysis.UnresolvedRelation
@@ -38,12 +36,5 @@ class SparkSQLHandler (coreServer : ServerHandler) (implicit ss : SparkSession )
     val logicalPlan = ss.sessionState.sqlParser.parsePlan(query)
     logicalPlan
   }
-
-  // Crear tablas temporales a partir de un explain plan:
-  /*
-    def getQueryTables( tables : Seq[String] ): Unit = {
-      tables.map(t => {coreServer.getHDFSTable(t).createOrReplaceTempView(t)})
-    }
-  */
 
 }

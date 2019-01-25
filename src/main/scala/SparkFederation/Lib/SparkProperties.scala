@@ -17,7 +17,6 @@ object SparkProperties {
     .master("local")
     .appName("SparkFederation")
     .config("spark.driver.host","localhost")
-    //.config("spark.debug.maxToStringFields", "100")
     .master("local[*]")
     .getOrCreate()
 

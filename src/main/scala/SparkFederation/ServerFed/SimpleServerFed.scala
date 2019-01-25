@@ -2,19 +2,17 @@ package SparkFederation.ServerFed
 
 import SparkFederation.ConnectorsFed._
 import SparkFederation.Exceptions.{TableNoExistFed, UpdateMetaDataException}
-import SparkFederation.Lib.{KafkaProperties, SparkProperties}
+import SparkFederation.Lib.KafkaProperties
 import SparkFederation.ServerFed.utils.{ServerHandler, SparkSQLHandler}
-import org.apache.kafka.clients.consumer.{ConsumerRecord, ConsumerRecords}
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.zookeeper.KeeperException
 
 import scala.collection.JavaConversions._
 
 class SimpleServerFed (val groupId : String = "ServerGroup" ) (implicit ss : SparkSession) {
-//class SimpleServerFed (val idServer : String, val groupId : String ) {
 
-  //val SERVER_ID = KafkaProperties.createUniqueId()
-  val SERVER_ID = "Server_2"
+
+  val SERVER_ID = KafkaProperties.createUniqueId()
   val serverTopic= createServerTopic(SERVER_ID)
 
   val serverSummiter = new KafkaProducerFed(
@@ -103,11 +101,7 @@ class SimpleServerFed (val groupId : String = "ServerGroup" ) (implicit ss : Spa
 
       val records = consumer.poll(100)
 
-      println("Antes bucle " + records.count() + " vacio: " + records.isEmpty())
-
       for (record <- records.iterator()) {
-
-        println("Received message: (" + record.key() + ", " + record.value() + ") at offset " + record.offset())
         result = record.value()
         flag = 1
       }
@@ -116,8 +110,6 @@ class SimpleServerFed (val groupId : String = "ServerGroup" ) (implicit ss : Spa
     consumer.commitSync()
 
     result
-    // llamar a la clase que maneja el contexto de spark y lanza la query
-
   }
 
 
@@ -201,10 +193,7 @@ class SimpleServerFed (val groupId : String = "ServerGroup" ) (implicit ss : Spa
   }
 
   def syncCluster(query: String): Unit = {
-    // TODO: Proceso de broadcast al resto de servidores
-
     val serverTopics = coreServer.getServersTopics(SERVER_ID)
-    serverTopics.foreach(println)
     serverTopics.map(send2Server(query,_))
 
   }
@@ -218,9 +207,7 @@ class SimpleServerFed (val groupId : String = "ServerGroup" ) (implicit ss : Spa
   def updateServer(): Unit = {
 
     var upQuery = listenServerTopic()
-    println("*** Hola ")
     while (upQuery.isDefined){
-      println("*** Hola 1")
       sqlServer.exeQuerySpark(upQuery.get)
       upQuery = Option.empty[String]
       listenServerTopic()
@@ -235,17 +222,12 @@ class SimpleServerFed (val groupId : String = "ServerGroup" ) (implicit ss : Spa
     var flag = 0
     var tried = 0
 
-    println("********* listenServerTopic")
 
     while (flag == 0) {
-      println(s"********* while ${tried}")
+
       val records = consumer.poll(100)
 
-      println("Antes bucle " + records.count() + " vacio: " + records.isEmpty())
-
       for (record <- records.iterator()) {
-
-        println("Received message: (" + record.key() + ", " + record.value() + ") at offset " + record.offset())
         result = Option(record.value())
         flag = 1
       }
@@ -255,8 +237,6 @@ class SimpleServerFed (val groupId : String = "ServerGroup" ) (implicit ss : Spa
       }
 
       tried += 1
-
-      println(s"********* while ${tried} + ${flag}")
     }
     consumer.commitSync()
 

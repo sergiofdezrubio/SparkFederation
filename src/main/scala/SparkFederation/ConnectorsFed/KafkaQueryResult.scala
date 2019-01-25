@@ -13,9 +13,6 @@ class KafkaQueryResult(
                     ,val schemaDataframe : Option[Array[String]]
                   )extends Serializable {
 
-  //override def toString(): String = s"Query: " + query + " -- typeQuery: " + typeQuery + " -- Status: " + status
-
-
 override def toString(): String = {
     if (dataframe.isDefined && error.isDefined && schemaDataframe.isEmpty) {
       val toPrint = s"Query Details:\n\tType Query:\t${typeQuery}\n\tStatement:\t${query}\n\tEstatus:\t${status}\n\t+" +

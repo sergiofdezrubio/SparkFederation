@@ -1,6 +1,5 @@
 package SparkFederation.ConnectorsFed
 
-import java.util.Properties
 import SparkFederation.Lib.KafkaProperties
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
 
@@ -21,9 +20,6 @@ class KafkaProducerFed [U] (val idProducer: String,
 
   def configureProducer( idProducer: String, typeProd: String) : KafkaProducer [String, U] = {
     val topic = KafkaProperties.getStandardTopic(this.typeProd)
-
-    //val properties  = new KafkaProperties(idClient,this.serializer)
-    //val kafProducer = new KafkaProducer[String, U](properties.KafkaPropsProd)
 
     val properties  = KafkaProperties.createKafkaPropsProd(idProducer,this.serializer)
     val kafProducer = new KafkaProducer[String, U](properties)

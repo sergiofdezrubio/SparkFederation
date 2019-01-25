@@ -125,10 +125,6 @@ object KafkaProperties {
     KafkaPropsCons.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, deserializer)
     KafkaPropsCons.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, deserializer)
     KafkaPropsCons.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,"earliest")
-    //KafkaPropsCons.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,"latest") // esto hacia que el primer mensaje no se leyera
-    //KafkaPropsCons.put("enable.auto.commit", "false") // nuevo <- Estudiar si poner
-    //KafkaPropsCons.put("auto.offset.reset", "earliest") // nuevo este es elque hace eso
-
     KafkaPropsCons
   }
 }

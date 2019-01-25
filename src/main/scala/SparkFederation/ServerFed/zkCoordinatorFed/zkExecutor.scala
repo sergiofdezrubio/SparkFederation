@@ -8,11 +8,7 @@ import org.apache.zookeeper.data.Stat
 
 
 
-
-//class zkExecutor (val zkConnection : ZkConnection ) {
 class zkExecutor () {
-
-  //val zkSession = zkConnection.createZkSession()
 
   // https://www.tutorialspoint.com/zookeeper/zookeeper_api.htm
 
@@ -36,10 +32,7 @@ class zkExecutor () {
   @throws(classOf[KeeperException])
   @throws(classOf[InterruptedException])
   def getData(path : String ) : Option[Array[Byte]] = {
-
-    //val rawData = zkMaster.getData("/hdfs/prueba").get
-    //val netData = (rawData.map(_.toChar)).mkString
-
+    
     val zkSession = new ZkConnection().createZkSession()
     val znode = this.existsZnode(path)
     val connectedSignal = new CountDownLatch(1)
